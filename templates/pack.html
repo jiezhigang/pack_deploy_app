@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- 网页角标显示-->
+    <link rel="shortcut icon" href="/static/images/favicon.ico" />
+    <!-- 上述3个meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
+    <title>系统部署</title>
+    <!-- Bootstrap -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body>
+<div id="errorMsg" style="display: none;" class="alert alert-warning alert-dismissible" role="alert">
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span>
+    </button>
+    <strong>警告！</strong>请输入合法有效的设备IP与登录密码。
+</div>
+<div class="page-header margin-lg-1">
+    <h3>&nbsp;&nbsp;系统部署
+        <small>V1.1</small>
+    </h3>
+</div>
+<div class="container-fluid">
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-xs-4 col-md-2">
+                    <form action="/pack" method="post" onsubmit="return confirm_form();">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="exampleInputEmail1">设备IP</label>
+                            <input type="text" class="form-control" id="ip" name="ip" placeholder="IP">
+                        </div>
+                        <div class="form-group">
+                            <label for="exampleInputEmail1">登录密码</label>
+                            <input type="password" class="form-control" id="password" name="password"
+                                   placeholder="password">
+                        </div>
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" name="build_flag" id="build_flag">系统打包
+                            </label>
+                            <label>
+                                <input type="checkbox" name="delete_flag" id="delete_flag">清除数据
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-default">灌装</button>
+                    </form>
+
+                </div>
+                <div class="col-xs-8 col-md-6">
+                    <p>结果展示：</p>
+                    <div class="row">
+                        <div class="col-xs-2 col-md-0"></div>
+                        <div class="col-xs-10 col-md-8" id="result">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="/static/js/jquery-3.3.1.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/static/js/bootstrap.min.js"></script>
+<script src="/static/js/ajaxCSRF.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $("#ip").focus();
+        initLoading();
+    });
+
+    function isValidIP(ip) {
+        var reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/
+        return reg.test(ip);
+    }
+
+    function confirm_form() {
+        var ip = $('#ip').val();
+        var pw = $('#password').val();
+        $("#result_text_area").val("");
+        if (isValidIP(ip) && pw != null && pw != "") {
+            var build_flag = 'off';
+            if ($('#build_flag').is(':checked')) {
+                build_flag = 'on';
+            }
+            var delete_flag = 'off';
+            if ($('#delete_flag').is(':checked')) {
+                delete_flag = 'on';
+            }
+            showLoading()
+            $.ajax({
+                type: "post",
+                data: "ip=" + ip + "&password=" + pw + "&build_flag=" + build_flag + "&delete_flag=" + delete_flag,
+                url: "/pack",
+                success: function (obj) {
+                    $("#result").text(obj);
+                    hideLoading();
+                },
+                error: function () {
+                    alert('failed');
+                    hideLoading();
+                }
+            });
+            return false;
+        } else {
+            $("#errorMsg").show();
+            return false;
+        }
+    }
+
+    function initLoading() {
+        $("body").append("<!-- loading -->" +
+            "<div class='modal fade' id='loading' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' data-backdrop='static'>" +
+            "<div class='modal-dialog modal-center' role='document'>" +
+            "<div class='modal-content'>" +
+            "<div class='modal-header'>" +
+            "<h4 class='modal-title' id='myModalLabel'>提示</h4>" +
+            "</div>" +
+            "<div id='loadingText' class='modal-body'>" +
+            "<div class='row'><div class='col-sm-12 form-group'><div class='col-sm-4' style='width:140px !important;'></div><div class='col-sm-4'>" +
+            "<table border='0' cellpadding='0' cellspacing='0' class='editmiddle' style='width: 248px;'><tr>  <td style='text-align: center;color: #234C8E;font-size: 12px;'></td></tr><tr> <td style='text-align: center;'><img src='/static/images/loading_circle.gif' /></td></tr>    </table>" +
+            "</div><div class='col-sm-4'></div></div></div>" +
+            "</div>" +
+            "</div>" +
+            "</div>" +
+            "</div>"
+        );
+    }
+
+    function showLoading(text) {
+        $("#loadingText").html(text);
+        $("#loading").modal("show");
+    }
+
+    function hideLoading() {
+        $("#loading").modal("hide");
+    }
+
+</script>
+</body>
+</html>
+
